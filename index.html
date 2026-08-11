@@ -61,8 +61,11 @@
   </div>
 
   <div class="card">
-    <label for="binFile">1. F/W bin 파일 선택 (별도 전달)</label>
+    <label for="binFile">1. F/W bin 파일 선택 (<b>FW_Total_V*.bin</b> 만 허용)</label>
     <input type="file" id="binFile" accept=".bin">
+    <div id="fileHint" style="font-size:12px; color:#666; margin-top:6px">
+      ⚠️ <code>FW_Total_V*.bin</code> 만 업로드 가능. <code>FW_Update_*.bin</code> (앱만) 은 flash offset 이 달라 부팅 안됨.
+    </div>
 
     <label for="offset" style="margin-top:16px">2. Flash offset (Total 이미지 = <code>0x0</code>)</label>
     <input type="text" id="offset" value="0x0">
@@ -180,6 +183,16 @@
         return;
       }
       const file = fileInput.files[0];
+
+      /* [2026-08-11] 파일명 필터 : FW_Total_*.bin 만 허용.
+         FW_Update_*.bin (앱만) 을 실수로 올리면 offset=0 flash 시 bootloader 없어 부팅 안됨. */
+      if (!isTotalBin(file.name)) {
+        setStatus(`❌ 파일명이 규칙에 맞지 않습니다 : "${file.name}"\n` +
+                  `→ FW_Total_V*.bin (Total 이미지) 만 업로드 가능합니다.\n` +
+                  `→ FW_Update_*.bin 은 앱만 있어 offset 0x0 flash 시 부팅 안됨.`, 'error');
+        return;
+      }
+
       const offsetStr = $('offset').value.trim();
       const offset = parseInt(offsetStr, 16);
       if (isNaN(offset)) {
@@ -260,6 +273,35 @@
         try { if (transport) await transport.disconnect(); } catch (_) {}
       }
     }
+
+    /* [2026-08-11] Total 파일명 검증 함수 : "FW_Total_" 접두사 + ".bin" 확장자.
+       대소문자 무시. 예: FW_Total_V1.4.bin / fw_total_v1_4.bin 모두 허용. */
+    function isTotalBin(filename) {
+      const lower = filename.toLowerCase();
+      return lower.startsWith('fw_total_') && lower.endsWith('.bin');
+    }
+
+    /* 파일 선택 시 즉시 검증 → 규칙 위반이면 UI 에 경고 표시 (flash 버튼 누르기 전에도 안내) */
+    $('binFile').addEventListener('change', (e) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+      const name = files[0].name;
+      const hint = $('fileHint');
+      if (isTotalBin(name)) {
+        hint.innerHTML = `✅ 유효한 Total 파일 : <code>${name}</code>`;
+        hint.style.color = '#065F46';   /* green */
+        hint.style.background = '#D1FAE5';
+        hint.style.padding = '8px';
+        hint.style.borderRadius = '6px';
+      } else {
+        hint.innerHTML = `❌ 파일명 규칙 위반 : <code>${name}</code><br>` +
+                        `→ <code>FW_Total_V*.bin</code> 만 허용. <code>FW_Update_*.bin</code> 은 offset 이 달라 부팅 안됨.`;
+        hint.style.color = '#991B1B';   /* red */
+        hint.style.background = '#FEE2E2';
+        hint.style.padding = '8px';
+        hint.style.borderRadius = '6px';
+      }
+    });
 
     $('btnSelectPort').addEventListener('click', selectPort);
     $('btnConnect').addEventListener('click', connectAndFlash);
