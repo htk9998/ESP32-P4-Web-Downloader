@@ -8,7 +8,7 @@ https://htk9998.github.io/ESP32-P4-Web-Downloader/
 
 ## 사용 방법
 
-1. JIG 를 USB-C 데이터 케이블로 PC 에 연결
+1. JIG 를 USB-A 데이터 케이블로 PC 에 연결
 2. 위 URL 을 Chrome / Edge 로 접속
 3. 별도 전달받은 `FW_Total_V*.bin` 파일 선택
 4. Flash offset 확인 (Total 이미지 : `0x0`)
